@@ -22,14 +22,34 @@ import { LogLoginModel } from './model/log.login.model'
 import { join } from 'path'
 import { LicenseModule } from './license/license.module'
 import { LicenseController } from './license/license.controller'
+import { getConnectionToken, MongooseModule } from '@nestjs/mongoose'
+import * as AutoIncrementFactory from 'mongoose-sequence'
+import { Connection } from 'mongoose'
+import { Surrounding, SurroundingSchema } from './model/surrounding'
+import { SurroundingController } from './surrounding/surrounding.controller'
+import { SurroundingModule } from './surrounding/surrounding.module'
 
 @Module({
   imports: [
     AuthModule,
+    SurroundingModule,
     AccountModule,
     MenuModule,
     LogModule,
     LicenseModule,
+    MongooseModule.forRoot(`${process.env.MONGO_CONNECTION}`),
+    MongooseModule.forFeatureAsync([
+      {
+        name: Surrounding.name,
+        useFactory: async (connection: Connection) => {
+          const schema = SurroundingSchema;
+          const AutoIncrement = AutoIncrementFactory(connection);
+          schema.plugin(AutoIncrement, { inc_field: 'id' });
+          return schema;
+        },
+        inject: [getConnectionToken()],
+      }
+    ]),
     TypeOrmModule.forRoot(configService.getTypeOrmConfig()),
     TypeOrmModule.forFeature([LogLoginModel, LogActivityModel], 'default'),
     ServeStaticModule.forRoot({
@@ -40,6 +60,7 @@ import { LicenseController } from './license/license.controller'
   ],
   controllers: [
     AccountController,
+    SurroundingController,
     MenuController,
     LogController,
     AuthController,
